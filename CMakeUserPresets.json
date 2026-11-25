@@ -1,0 +1,13 @@
+﻿{
+  "version": 8,
+  "configurePresets": [
+    {
+      "name": "windows-x64-msvc1452",
+      "displayName": "Windows x64 - MSVC 14.52",
+      "description": "OBS build using Visual Studio 2026 v145",
+      "inherits": "windows-x64",
+      "binaryDir": "${sourceDir}/build_x64_v145",
+      "toolset": "v145"
+    }
+  ]
+}
