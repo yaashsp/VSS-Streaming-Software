@@ -1,37 +1,34 @@
 cmake_minimum_required(VERSION 3.28...3.30)
 
-include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCOPE)
+add_library(libobs-winrt-headers INTERFACE)
+add_library(OBS::winrt-headers ALIAS libobs-winrt-headers)
 
-project(obs-studio VERSION ${OBS_VERSION_CANONICAL})
+target_sources(libobs-winrt-headers INTERFACE winrt-capture.h)
+target_include_directories(libobs-winrt-headers INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}")
 
-if(CMAKE_HOST_SYSTEM_NAME MATCHES "Windows")
-  include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/windows/architecture.cmake")
-  if(NOT OBS_PARENT_ARCHITECTURE STREQUAL CMAKE_VS_PLATFORM_NAME)
-    return()
-  endif()
-endif()
+add_library(libobs-winrt MODULE)
+add_library(OBS::libobs-winrt ALIAS libobs-winrt)
 
-include(compilerconfig)
-include(defaults)
-include(helpers)
+target_sources(libobs-winrt PRIVATE winrt-capture.cpp winrt-capture.h winrt-dispatch.cpp winrt-dispatch.h)
 
-option(ENABLE_FRONTEND "Enable building with UI (requires Qt)" ON)
-option(ENABLE_SCRIPTING "Enable scripting support" ON)
-option(ENABLE_HEVC "Enable HEVC encoders" ON)
+target_precompile_headers(
+  libobs-winrt
+  PRIVATE
+    <d3d11.h>
+    <DispatcherQueue.h>
+    <dwmapi.h>
+    <obs-module.h>
+    <util/windows/ComPtr.hpp>
+    <Windows.Graphics.Capture.Interop.h>
+    <windows.graphics.directx.direct3d11.interop.h>
+    <winrt/Windows.Foundation.Metadata.h>
+    <winrt/Windows.Graphics.Capture.h>
+    <winrt/Windows.System.h>
+)
 
-add_subdirectory(libobs)
-if(OS_WINDOWS)
-  add_subdirectory(libobs-d3d11)
-  add_subdirectory(libobs-winrt)
-endif()
-add_subdirectory(libobs-opengl)
-if(OS_MACOS)
-  add_subdirectory(libobs-metal)
-endif()
-add_subdirectory(plugins)
+target_link_libraries(libobs-winrt PRIVATE OBS::libobs OBS::COMutils Dwmapi windowsapp)
 
-add_subdirectory(test/test-input)
+# FIXME: WinRT library headers trigger deprecation warning until OBS Studio uses C++20 or newer
+target_compile_definitions(libobs-winrt PRIVATE _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
 
-add_subdirectory(frontend)
-
-message_configuration()
+set_target_properties_obs(libobs-winrt PROPERTIES FOLDER core)
